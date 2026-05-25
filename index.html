@@ -44,6 +44,7 @@
   .phase-badge.p1{background:var(--accent-1-bg);color:var(--accent-1);}
   .phase-badge.p2{background:var(--accent-2-bg);color:var(--accent-2);}
   .phase-badge.p3{background:var(--accent-3-bg);color:var(--accent-3);}
+  .phase-badge.log{background:#f3f0ea;color:var(--text-muted);}
   .phase-title{font-size:15px;font-weight:700;}
   .phase-progress-text{margin-left:auto;font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums;}
   .phase-pbar{width:80px;height:4px;background:var(--border);border-radius:999px;overflow:hidden;}
@@ -79,17 +80,34 @@
   .save-btn.saved{background:var(--green-bg);border-color:var(--green);color:var(--accent-2);}
 
   .sub-tasks{padding:0 14px 10px 44px;}
-  .sub-task{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
-  .sub-task:last-child{border-bottom:none;}
+  .sub-task-wrap{border-bottom:1px solid var(--border);}
+  .sub-task-wrap:last-child{border-bottom:none;}
+  .sub-task{display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;user-select:none;}
   .sub-check{width:14px;height:14px;border:1.5px solid var(--border-dark);border-radius:3px;flex-shrink:0;background:var(--bg);transition:all .15s;display:flex;align-items:center;justify-content:center;}
   .sub-task.done .sub-check{background:var(--green);border-color:var(--green);}
   .sub-dot{display:none;width:5px;height:5px;border-radius:50%;background:white;}
   .sub-task.done .sub-dot{display:block;}
-  .sub-title{font-size:12px;color:var(--text-muted);}
+  .sub-title{font-size:12px;color:var(--text-muted);flex:1;}
   .sub-task.done .sub-title{text-decoration:line-through;color:var(--text-hint);}
+  .sub-comment-toggle{font-size:10px;color:var(--text-hint);border:none;background:none;cursor:pointer;padding:2px 5px;border-radius:3px;transition:all .1s;flex-shrink:0;display:flex;align-items:center;gap:2px;line-height:1;}
+  .sub-comment-toggle:hover{background:var(--border);color:var(--text-muted);}
+  .sub-comment-toggle.has-comment{color:var(--accent-1);background:var(--accent-1-bg);}
 
+  .sub-note-area{display:none;padding:6px 0 8px 22px;background:var(--bg);border-radius:0 0 4px 4px;}
+  .sub-note-area.open{display:block;}
+  .sub-note-area textarea{width:100%;min-height:52px;border:1px solid var(--border);border-radius:5px;padding:6px 8px;font-family:'Noto Sans JP',sans-serif;font-size:11px;color:var(--text);background:var(--surface);resize:vertical;outline:none;line-height:1.5;transition:border-color .15s;}
+  .sub-note-area textarea:focus{border-color:var(--accent-1);}
+  .sub-note-area textarea::placeholder{color:var(--text-hint);}
+  .sub-note-footer{display:flex;justify-content:flex-end;margin-top:4px;}
+  .sub-save-btn{font-size:10px;font-weight:500;padding:3px 10px;border-radius:4px;border:1px solid var(--border-dark);background:var(--surface);color:var(--text-muted);cursor:pointer;transition:all .1s;}
+  .sub-save-btn:hover{background:var(--green-bg);border-color:var(--green);color:var(--accent-2);}
+  .sub-save-btn.saved{background:var(--green-bg);border-color:var(--green);color:var(--accent-2);}
+
+  .daily-comment-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:32px;}
+  .daily-comment-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+  .daily-comment-header .phase-badge{background:var(--accent-2-bg);color:var(--accent-2);}
   .log-section{margin-top:8px;}
-  .log-input-row{display:grid;grid-template-columns:110px 1fr auto;gap:8px;margin-bottom:8px;}
+  .log-input-row{display:grid;grid-template-columns:110px 1fr auto;gap:8px;margin-bottom:0;}
   .log-input-row input,.log-input-row textarea{padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:'Noto Sans JP',sans-serif;font-size:12px;color:var(--text);background:var(--surface);outline:none;}
   .log-input-row textarea{resize:none;height:36px;line-height:1.4;}
   .log-input-row input:focus,.log-input-row textarea:focus{border-color:var(--accent-1);}
@@ -148,7 +166,7 @@
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getDatabase, ref, onValue, set, update, push, remove } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+import { getDatabase, ref, onValue, set, push, remove } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
 const firebaseConfig = {
   databaseURL: 'https://am5-dash-board-default-rtdb.firebaseio.com/'
@@ -160,6 +178,7 @@ const PATHS = {
   checks: 'learning/checks',
   subChecks: 'learning/subChecks',
   notes: 'learning/notes',
+  subNotes: 'learning/subNotes',
   logs: 'learning/logs'
 };
 
@@ -230,7 +249,7 @@ const DATA = {
   ]
 };
 
-let checks = {}, subChecks = {}, notes = {}, logs = {};
+let checks = {}, subChecks = {}, notes = {}, subNotes = {}, logs = {};
 let loaded = 0;
 
 function setSyncState(state) {
@@ -242,7 +261,7 @@ function setSyncState(state) {
 
 function checkLoaded() {
   loaded++;
-  if (loaded >= 4) {
+  if (loaded >= 5) {
     document.getElementById('loadingOverlay').classList.add('hidden');
     render();
     setSyncState('ok');
@@ -251,26 +270,32 @@ function checkLoaded() {
 
 onValue(ref(db, PATHS.checks), snap => {
   checks = snap.val() || {};
-  if (loaded >= 4) refreshAll();
+  if (loaded >= 5) refreshAll();
   else checkLoaded();
 }, () => { setSyncState('err'); checkLoaded(); });
 
 onValue(ref(db, PATHS.subChecks), snap => {
   subChecks = snap.val() || {};
-  if (loaded >= 4) refreshAll();
+  if (loaded >= 5) refreshAll();
   else checkLoaded();
 }, () => checkLoaded());
 
 onValue(ref(db, PATHS.notes), snap => {
   notes = snap.val() || {};
-  if (loaded >= 4) refreshAll();
+  if (loaded >= 5) refreshAll();
+  else checkLoaded();
+}, () => checkLoaded());
+
+onValue(ref(db, PATHS.subNotes), snap => {
+  subNotes = snap.val() || {};
+  if (loaded >= 5) refreshAll();
   else checkLoaded();
 }, () => checkLoaded());
 
 onValue(ref(db, PATHS.logs), snap => {
   const raw = snap.val();
   logs = raw ? Object.entries(raw).map(([k,v]) => ({_key:k,...v})).reverse() : [];
-  if (loaded >= 4) renderLogList();
+  if (loaded >= 5) renderLogList();
   else checkLoaded();
 }, () => checkLoaded());
 
@@ -318,6 +343,10 @@ function refreshAll() {
         const key = t.id + '_' + si;
         const el = document.getElementById('sub_' + key);
         if (el) el.classList.toggle('done', !!subChecks[key]);
+        const btn = document.getElementById('subbtn_' + key);
+        if (btn) btn.classList.toggle('has-comment', !!(subNotes[key] && subNotes[key].trim()));
+        const subTa = document.getElementById('subta_' + key);
+        if (subTa && document.activeElement !== subTa) subTa.value = subNotes[key] || '';
       });
     }));
     updatePhaseBar(p.id);
@@ -354,6 +383,24 @@ window.saveNote = function(id) {
       btn.textContent = '保存済み ✓';
       btn.classList.add('saved');
       setTimeout(() => { btn.textContent = 'メモを保存'; btn.classList.remove('saved'); }, 1500);
+    })
+    .catch(() => setSyncState('err'));
+};
+
+window.toggleSubNote = function(key) {
+  document.getElementById('subnote_' + key).classList.toggle('open');
+};
+
+window.saveSubNote = function(key) {
+  const ta = document.getElementById('subta_' + key);
+  const btn = document.getElementById('subSavebtn_' + key);
+  setSyncState('syncing');
+  set(ref(db, PATHS.subNotes + '/' + key), ta.value)
+    .then(() => {
+      setSyncState('ok');
+      btn.textContent = '保存済み ✓';
+      btn.classList.add('saved');
+      setTimeout(() => { btn.textContent = '保存'; btn.classList.remove('saved'); }, 1500);
     })
     .catch(() => setSyncState('err'));
 };
@@ -399,6 +446,21 @@ function renderLogList() {
 function render() {
   const main = document.getElementById('main');
   let html = '';
+
+  // Daily comment input — TOP
+  html += `<div class="daily-comment-section">
+    <div class="daily-comment-header">
+      <span class="phase-badge">今日の記録</span>
+      <span class="phase-title">コメントを追加</span>
+    </div>
+    <div class="log-input-row">
+      <input type="text" id="logDate" placeholder="${today()}" maxlength="10">
+      <textarea id="logContent" placeholder="今日やったこと・気づき..."></textarea>
+      <button class="add-log-btn" onclick="addLog()">追加</button>
+    </div>
+  </div>`;
+
+  // Phase groups
   DATA.phases.forEach(phase => {
     let phaseAllCount = 0, phaseDoneCount = 0;
     phase.sections.forEach(s => s.tasks.forEach(t => { phaseAllCount++; if (checks[t.id]) phaseDoneCount++; }));
@@ -430,9 +492,20 @@ function render() {
           html += `<div class="sub-tasks">`;
           task.subs.forEach((sub, si) => {
             const key = task.id + '_' + si;
-            html += `<div class="sub-task${subChecks[key]?' done':''}" id="sub_${key}" onclick="toggleSub('${task.id}',${si})">
-              <div class="sub-check"><div class="sub-dot"></div></div>
-              <span class="sub-title">${sub}</span>
+            const hasSubNote = !!(subNotes[key] && subNotes[key].trim());
+            html += `<div class="sub-task-wrap">
+              <div class="sub-task${subChecks[key]?' done':''}" id="sub_${key}" onclick="toggleSub('${task.id}',${si})">
+                <div class="sub-check"><div class="sub-dot"></div></div>
+                <span class="sub-title">${sub}</span>
+                <button class="sub-comment-toggle${hasSubNote?' has-comment':''}" id="subbtn_${key}" onclick="event.stopPropagation();toggleSubNote('${key}')">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  コメント
+                </button>
+              </div>
+              <div class="sub-note-area" id="subnote_${key}">
+                <textarea id="subta_${key}" placeholder="この項目についてのコメント...">${(subNotes[key]||'').replace(/</g,'&lt;')}</textarea>
+                <div class="sub-note-footer"><button class="sub-save-btn" id="subSavebtn_${key}" onclick="saveSubNote('${key}')">保存</button></div>
+              </div>
             </div>`;
           });
           html += `</div>`;
@@ -445,20 +518,16 @@ function render() {
     });
     html += `</div>`;
   });
+
+  // Log list — BOTTOM
   html += `<div class="phase-group">
     <div class="phase-header">
-      <span class="phase-badge p1">学習ログ</span>
+      <span class="phase-badge log">学習ログ</span>
       <span class="phase-title">日々の記録</span>
     </div>
-    <div class="log-section">
-      <div class="log-input-row">
-        <input type="text" id="logDate" placeholder="${today()}" maxlength="10">
-        <textarea id="logContent" placeholder="今日やったこと・気づき..."></textarea>
-        <button class="add-log-btn" onclick="addLog()">追加</button>
-      </div>
-      <div class="log-list" id="logList"></div>
-    </div>
+    <div class="log-list" id="logList"></div>
   </div>`;
+
   main.innerHTML = html;
   renderLogList();
   updateOverall();
