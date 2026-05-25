@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI学習ロードマップ</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root {
+    --bg:#f7f6f3; --surface:#fff; --border:#e8e5df; --border-dark:#d0ccc4;
+    --text:#1a1917; --text-muted:#7a7671; --text-hint:#b0aca5;
+    --accent-1:#3c3489; --accent-1-bg:#eeedfe;
+    --accent-2:#085041; --accent-2-bg:#e1f5ee;
+    --accent-3:#633806; --accent-3-bg:#faeeda;
+    --green:#1d9e75; --green-bg:#e1f5ee;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;}
+
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:20px 32px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+  .header-left h1{font-size:18px;font-weight:700;letter-spacing:-0.3px;}
+  .header-left p{font-size:12px;color:var(--text-muted);margin-top:2px;}
+
+  .sync-indicator{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-hint);}
+  .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--text-hint);transition:background .3s;flex-shrink:0;}
+  .sync-dot.syncing{background:#f59e0b;animation:pulse 1s ease-in-out infinite;}
+  .sync-dot.ok{background:var(--green);}
+  .sync-dot.err{background:#e24b4a;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+  .overall-progress{display:flex;align-items:center;gap:12px;}
+  .progress-ring{position:relative;width:52px;height:52px;flex-shrink:0;}
+  .progress-ring svg{transform:rotate(-90deg);}
+  .ring-bg{fill:none;stroke:var(--border);stroke-width:4;}
+  .ring-fill{fill:none;stroke:var(--green);stroke-width:4;stroke-linecap:round;stroke-dasharray:138.2;stroke-dashoffset:138.2;transition:stroke-dashoffset .5s ease;}
+  .ring-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--text);}
+  .progress-stats{font-size:12px;color:var(--text-muted);line-height:1.8;}
+  .progress-stats strong{color:var(--text);font-size:14px;}
+
+  main{max-width:800px;margin:0 auto;padding:28px 24px;}
+  .phase-group{margin-bottom:32px;}
+  .phase-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+  .phase-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:100px;letter-spacing:.3px;}
+  .phase-badge.p1{background:var(--accent-1-bg);color:var(--accent-1);}
+  .phase-badge.p2{background:var(--accent-2-bg);color:var(--accent-2);}
+  .phase-badge.p3{background:var(--accent-3-bg);color:var(--accent-3);}
+  .phase-title{font-size:15px;font-weight:700;}
+  .phase-progress-text{margin-left:auto;font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums;}
+  .phase-pbar{width:80px;height:4px;background:var(--border);border-radius:999px;overflow:hidden;}
+  .phase-pbar-fill{height:100%;background:var(--green);border-radius:999px;transition:width .4s ease;width:0%;}
+
+  .section-label{font-size:11px;font-weight:700;color:var(--text-hint);letter-spacing:.8px;text-transform:uppercase;margin:16px 0 8px;padding-left:4px;}
+
+  .task-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;overflow:hidden;transition:border-color .15s;}
+  .task-card:hover{border-color:var(--border-dark);}
+  .task-card.done{opacity:.6;}
+  .task-card.done .task-title{text-decoration:line-through;color:var(--text-muted);}
+
+  .task-main{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;user-select:none;}
+  .task-check{width:20px;height:20px;border:1.5px solid var(--border-dark);border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;background:var(--bg);}
+  .task-card.done .task-check{background:var(--green);border-color:var(--green);}
+  .checkmark{display:none;width:11px;height:8px;}
+  .checkmark path{stroke:white;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none;}
+  .task-card.done .checkmark{display:block;}
+  .task-title{font-size:13px;font-weight:500;flex:1;line-height:1.4;}
+  .task-meta{display:flex;align-items:center;gap:6px;}
+  .has-note-badge{font-size:10px;padding:1px 6px;background:var(--accent-1-bg);color:var(--accent-1);border-radius:100px;font-weight:500;}
+  .note-toggle{font-size:11px;color:var(--text-hint);border:none;background:none;cursor:pointer;padding:2px 6px;border-radius:4px;transition:all .1s;display:flex;align-items:center;gap:3px;}
+  .note-toggle:hover{background:var(--bg);color:var(--text-muted);}
+
+  .note-area{display:none;border-top:1px solid var(--border);padding:10px 14px 12px 44px;background:var(--bg);}
+  .note-area.open{display:block;}
+  .note-area textarea{width:100%;min-height:68px;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-family:'Noto Sans JP',sans-serif;font-size:12px;color:var(--text);background:var(--surface);resize:vertical;outline:none;line-height:1.6;transition:border-color .15s;}
+  .note-area textarea:focus{border-color:var(--accent-1);}
+  .note-area textarea::placeholder{color:var(--text-hint);}
+  .note-footer{display:flex;justify-content:flex-end;margin-top:6px;}
+  .save-btn{font-size:11px;font-weight:500;padding:4px 12px;border-radius:5px;border:1px solid var(--border-dark);background:var(--surface);color:var(--text-muted);cursor:pointer;transition:all .1s;}
+  .save-btn:hover{background:var(--green-bg);border-color:var(--green);color:var(--accent-2);}
+  .save-btn.saved{background:var(--green-bg);border-color:var(--green);color:var(--accent-2);}
+
+  .sub-tasks{padding:0 14px 10px 44px;}
+  .sub-task{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
+  .sub-task:last-child{border-bottom:none;}
+  .sub-check{width:14px;height:14px;border:1.5px solid var(--border-dark);border-radius:3px;flex-shrink:0;background:var(--bg);transition:all .15s;display:flex;align-items:center;justify-content:center;}
+  .sub-task.done .sub-check{background:var(--green);border-color:var(--green);}
+  .sub-dot{display:none;width:5px;height:5px;border-radius:50%;background:white;}
+  .sub-task.done .sub-dot{display:block;}
+  .sub-title{font-size:12px;color:var(--text-muted);}
+  .sub-task.done .sub-title{text-decoration:line-through;color:var(--text-hint);}
+
+  .log-section{margin-top:8px;}
+  .log-input-row{display:grid;grid-template-columns:110px 1fr auto;gap:8px;margin-bottom:8px;}
+  .log-input-row input,.log-input-row textarea{padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:'Noto Sans JP',sans-serif;font-size:12px;color:var(--text);background:var(--surface);outline:none;}
+  .log-input-row textarea{resize:none;height:36px;line-height:1.4;}
+  .log-input-row input:focus,.log-input-row textarea:focus{border-color:var(--accent-1);}
+  .add-log-btn{padding:8px 14px;border-radius:6px;border:1px solid var(--accent-1);background:var(--accent-1-bg);color:var(--accent-1);font-size:12px;font-weight:500;cursor:pointer;}
+  .log-list{border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  .log-entry{display:grid;grid-template-columns:90px 1fr auto;gap:12px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--border);font-size:12px;}
+  .log-entry:last-child{border-bottom:none;}
+  .log-entry:nth-child(even){background:var(--bg);}
+  .log-date{color:var(--text-hint);font-family:'JetBrains Mono',monospace;font-size:11px;}
+  .log-content{color:var(--text);}
+  .log-del{border:none;background:none;cursor:pointer;color:var(--text-hint);padding:2px 4px;border-radius:3px;font-size:14px;line-height:1;}
+  .log-del:hover{color:#e24b4a;background:#fcebeb;}
+  .empty-log{padding:16px;text-align:center;font-size:12px;color:var(--text-hint);}
+
+  .loading-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;z-index:100;}
+  .loading-overlay.hidden{display:none;}
+  .loading-spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-text{font-size:13px;color:var(--text-muted);}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">データを読み込み中...</div>
+</div>
+
+<header>
+  <div class="header-left">
+    <h1>AI学習ロードマップ</h1>
+    <p>AI活用の教科書 × Claude Code ／ 2026年6〜8月</p>
+  </div>
+  <div style="display:flex;align-items:center;gap:20px;">
+    <div class="sync-indicator">
+      <div class="sync-dot" id="syncDot"></div>
+      <span id="syncText">接続中...</span>
+    </div>
+    <div class="overall-progress">
+      <div class="progress-ring">
+        <svg width="52" height="52" viewBox="0 0 52 52">
+          <circle class="ring-bg" cx="26" cy="26" r="22"/>
+          <circle class="ring-fill" id="ringFill" cx="26" cy="26" r="22"/>
+        </svg>
+        <div class="ring-label" id="ringLabel">0%</div>
+      </div>
+      <div class="progress-stats">
+        <strong id="statDone">0</strong> / <span id="statTotal">0</span> 完了<br>
+        <span id="statRemain" style="color:var(--text-hint)">— 残り</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="main"></main>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, onValue, set, update, push, remove } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const firebaseConfig = {
+  databaseURL: 'https://am5-dash-board-default-rtdb.firebaseio.com/'
+};
+const app = initializeApp(firebaseConfig, 'learning');
+const db = getDatabase(app);
+
+const PATHS = {
+  checks: 'learning/checks',
+  subChecks: 'learning/subChecks',
+  notes: 'learning/notes',
+  logs: 'learning/logs'
+};
+
+const DATA = {
+  phases: [
+    {
+      id:'p1', label:'フェーズ 1', cls:'p1',
+      title:'AI活用の教科書 ＋ Claude Code 基礎', period:'6月前半',
+      sections:[
+        { label:'📖 教科書 — 1章　生成AIは何が得意で何が得意でないのか', tasks:[
+          {id:'t1_1',title:'「生成AI」の定義と仕組み',subs:['生成AIと機械学習モデルの違い','生成AIは"補完機"','マルチモーダルAI','AIとは「自動化の民主化」']},
+          {id:'t1_2',title:'生成AIの使い道（文書作成・翻訳・相談・自動化）',subs:[]},
+          {id:'t1_3',title:'生成AIは何が苦手なのか',subs:['100%が求められること','値段が高くて遅い','学んでいないことには答えられない','権限がないことはできない']},
+          {id:'t1_4',title:'1章まとめ',subs:[]},
+        ]},
+        { label:'💻 Claude Code — Phase 1（1〜4週目）', tasks:[
+          {id:'cc1_1',title:'1週目：インストール & 初期設定',subs:['Node.js導入','CLIインストール','APIキー設定','hello world実行']},
+          {id:'cc1_2',title:'2週目：基本コマンドを覚える',subs:['ファイル読み込み','コード説明依頼','簡単な修正依頼']},
+          {id:'cc1_3',title:'3週目：プロンプトの書き方',subs:['明確な指示の構造','コンテキスト渡し方','出力形式の指定']},
+          {id:'cc1_4',title:'4週目：復習 & 小課題',subs:['既存ファイルのバグ修正','メモのMarkdown整形','コマンド逆引きメモ作成']},
+        ]},
+      ]
+    },
+    {
+      id:'p2', label:'フェーズ 2', cls:'p2',
+      title:'AI活用の教科書 ＋ Claude Code 実践', period:'6月後半〜7月前半',
+      sections:[
+        { label:'📖 教科書 — 2章　AIの使い始め方', tasks:[
+          {id:'t2_1',title:'テキストチャットAI各ツールの比較',subs:['ChatGPT','Gemini','Claude','Grok']},
+          {id:'t2_2',title:'AIの選び方・有料プランの判断',subs:[]},
+          {id:'t2_3',title:'万人にオススメのAIツール（NotebookLM・Aqua Voice）',subs:[]},
+          {id:'t2_4',title:'AIを業務に活かす3ステップ',subs:['Step 1: 業務の棚卸し','Step 2: タスクを言語化','Step 3: 活用方法を考える']},
+          {id:'t2_5',title:'2章まとめ',subs:[]},
+        ]},
+        { label:'📖 教科書 — 3章　プロンプトの基礎', tasks:[
+          {id:'t3_1',title:'プロンプトの心構え',subs:['一回で諦めない','最後は言語化力','色んなAIを試す']},
+          {id:'t3_2',title:'プロンプトのテクニック',subs:['Few-shots','Chain of Thought','ロールプロンプト','構造的に伝える','システムプロンプト']},
+          {id:'t3_3',title:'プロンプト作成を楽にする方法',subs:['逆プロンプト','プロンプト検索','プロンプトジェネレーター']},
+          {id:'t3_4',title:'プロンプトのテンプレート化 & チューニングプロセス',subs:[]},
+          {id:'t3_5',title:'3章まとめ',subs:[]},
+        ]},
+        { label:'💻 Claude Code — Phase 2（5〜8週目）', tasks:[
+          {id:'cc2_1',title:'5週目：コードレビュー & 生成',subs:['既存コード改善提案','テストコード生成','リファクタリング']},
+          {id:'cc2_2',title:'6週目：ファイル操作 & 構造把握',subs:['ディレクトリ構成説明','複数ファイル横断修正','README自動生成']},
+          {id:'cc2_3',title:'7週目：シェル & スクリプト連携',subs:['bashスクリプト作成','CSV処理自動化','ログ解析']},
+          {id:'cc2_4',title:'8週目：復習 & 実務適用',subs:[]},
+        ]},
+      ]
+    },
+    {
+      id:'p3', label:'フェーズ 3', cls:'p3',
+      title:'AI活用の教科書 ＋ Claude Code 応用', period:'7月後半〜8月',
+      sections:[
+        { label:'📖 教科書 — 4章　AIとセキュリティ', tasks:[
+          {id:'t4_1',title:'AIに入力する情報の注意点',subs:['外部サービスの認識','機密情報を入力しない','利用規約を読む']},
+          {id:'t4_2',title:'オプトアウト・エンタープライズプラン',subs:[]},
+          {id:'t4_3',title:'AIの出力を使う時の注意（ハルシネーション・倫理）',subs:[]},
+          {id:'t4_4',title:'4章まとめ & おわりに',subs:[]},
+        ]},
+        { label:'💻 Claude Code — Phase 3（9〜12週目）', tasks:[
+          {id:'cc3_1',title:'9週目：MCPサーバー入門',subs:['MCPの概念理解','サンプルサーバー起動','Claude Codeと接続']},
+          {id:'cc3_2',title:'10週目：外部ツール連携',subs:['Google Drive連携','GitHub操作自動化']},
+          {id:'cc3_3',title:'11週目：自動化パイプライン構築',subs:['繰り返し作業の特定','エラーハンドリング']},
+          {id:'cc3_4',title:'12週目：総仕上げ & 振り返り',subs:['成果物1つ完成','学習ログまとめ','次の目標設定']},
+        ]},
+      ]
+    }
+  ]
+};
+
+let checks = {}, subChecks = {}, notes = {}, logs = {};
+let loaded = 0;
+
+function setSyncState(state) {
+  const dot = document.getElementById('syncDot');
+  const txt = document.getElementById('syncText');
+  dot.className = 'sync-dot ' + state;
+  txt.textContent = state === 'ok' ? '同期済み' : state === 'syncing' ? '同期中...' : state === 'err' ? '接続エラー' : '接続中...';
+}
+
+function checkLoaded() {
+  loaded++;
+  if (loaded >= 4) {
+    document.getElementById('loadingOverlay').classList.add('hidden');
+    render();
+    setSyncState('ok');
+  }
+}
+
+onValue(ref(db, PATHS.checks), snap => {
+  checks = snap.val() || {};
+  if (loaded >= 4) refreshAll();
+  else checkLoaded();
+}, () => { setSyncState('err'); checkLoaded(); });
+
+onValue(ref(db, PATHS.subChecks), snap => {
+  subChecks = snap.val() || {};
+  if (loaded >= 4) refreshAll();
+  else checkLoaded();
+}, () => checkLoaded());
+
+onValue(ref(db, PATHS.notes), snap => {
+  notes = snap.val() || {};
+  if (loaded >= 4) refreshAll();
+  else checkLoaded();
+}, () => checkLoaded());
+
+onValue(ref(db, PATHS.logs), snap => {
+  const raw = snap.val();
+  logs = raw ? Object.entries(raw).map(([k,v]) => ({_key:k,...v})).reverse() : [];
+  if (loaded >= 4) renderLogList();
+  else checkLoaded();
+}, () => checkLoaded());
+
+function allTaskIds() {
+  let ids = [];
+  DATA.phases.forEach(p => p.sections.forEach(s => s.tasks.forEach(t => ids.push(t.id))));
+  return ids;
+}
+
+function updateOverall() {
+  const all = allTaskIds();
+  const done = all.filter(id => checks[id]).length;
+  const pct = all.length ? Math.round(done / all.length * 100) : 0;
+  const circ = 2 * Math.PI * 22;
+  document.getElementById('ringFill').style.strokeDashoffset = circ - (circ * pct / 100);
+  document.getElementById('ringLabel').textContent = pct + '%';
+  document.getElementById('statDone').textContent = done;
+  document.getElementById('statTotal').textContent = all.length;
+  document.getElementById('statRemain').textContent = (all.length - done) + ' タスク残り';
+}
+
+function updatePhaseBar(phaseId) {
+  const phase = DATA.phases.find(p => p.id === phaseId);
+  let all = 0, done = 0;
+  phase.sections.forEach(s => s.tasks.forEach(t => { all++; if (checks[t.id]) done++; }));
+  const pct = all ? Math.round(done / all * 100) : 0;
+  const bar = document.querySelector(`.phase-pbar-fill[data-phase="${phaseId}"]`);
+  const txt = document.querySelector(`.phase-progress-text[data-phase="${phaseId}"]`);
+  if (bar) bar.style.width = pct + '%';
+  if (txt) txt.textContent = done + ' / ' + all;
+}
+
+function refreshAll() {
+  allTaskIds().forEach(id => {
+    const card = document.getElementById('card_' + id);
+    if (card) card.classList.toggle('done', !!checks[id]);
+    const badge = document.getElementById('notebadge_' + id);
+    if (badge) badge.style.display = (notes[id] && notes[id].trim()) ? 'inline' : 'none';
+    const ta = document.getElementById('ta_' + id);
+    if (ta && document.activeElement !== ta) ta.value = notes[id] || '';
+  });
+  DATA.phases.forEach(p => {
+    p.sections.forEach(s => s.tasks.forEach(t => {
+      t.subs.forEach((_, si) => {
+        const key = t.id + '_' + si;
+        const el = document.getElementById('sub_' + key);
+        if (el) el.classList.toggle('done', !!subChecks[key]);
+      });
+    }));
+    updatePhaseBar(p.id);
+  });
+  updateOverall();
+  renderLogList();
+}
+
+window.toggleTask = function(id, phaseId) {
+  setSyncState('syncing');
+  const newVal = !checks[id];
+  set(ref(db, PATHS.checks + '/' + id), newVal)
+    .then(() => setSyncState('ok'))
+    .catch(() => setSyncState('err'));
+};
+
+window.toggleSub = function(taskId, subIdx) {
+  const key = taskId + '_' + subIdx;
+  set(ref(db, PATHS.subChecks + '/' + key), !subChecks[key])
+    .catch(() => setSyncState('err'));
+};
+
+window.toggleNote = function(id) {
+  document.getElementById('note_' + id).classList.toggle('open');
+};
+
+window.saveNote = function(id) {
+  const ta = document.getElementById('ta_' + id);
+  const btn = document.getElementById('savebtn_' + id);
+  setSyncState('syncing');
+  set(ref(db, PATHS.notes + '/' + id), ta.value)
+    .then(() => {
+      setSyncState('ok');
+      btn.textContent = '保存済み ✓';
+      btn.classList.add('saved');
+      setTimeout(() => { btn.textContent = 'メモを保存'; btn.classList.remove('saved'); }, 1500);
+    })
+    .catch(() => setSyncState('err'));
+};
+
+window.addLog = function() {
+  const dateEl = document.getElementById('logDate');
+  const contentEl = document.getElementById('logContent');
+  const content = contentEl.value.trim();
+  if (!content) return;
+  setSyncState('syncing');
+  push(ref(db, PATHS.logs), { date: dateEl.value.trim() || today(), content })
+    .then(() => { setSyncState('ok'); contentEl.value = ''; })
+    .catch(() => setSyncState('err'));
+};
+
+window.deleteLog = function(key) {
+  setSyncState('syncing');
+  remove(ref(db, PATHS.logs + '/' + key))
+    .then(() => setSyncState('ok'))
+    .catch(() => setSyncState('err'));
+};
+
+function today() {
+  return new Date().toLocaleDateString('ja-JP', {month:'2-digit', day:'2-digit'}).replace('/', '/');
+}
+
+function renderLogList() {
+  const el = document.getElementById('logList');
+  if (!el) return;
+  if (!logs.length) {
+    el.innerHTML = '<div class="empty-log">まだログがありません</div>';
+    return;
+  }
+  el.innerHTML = logs.map(l => `
+    <div class="log-entry">
+      <span class="log-date">${l.date||'—'}</span>
+      <span class="log-content">${(l.content||'').replace(/</g,'&lt;')}</span>
+      <button class="log-del" onclick="deleteLog('${l._key}')" title="削除">×</button>
+    </div>
+  `).join('');
+}
+
+function render() {
+  const main = document.getElementById('main');
+  let html = '';
+  DATA.phases.forEach(phase => {
+    let phaseAllCount = 0, phaseDoneCount = 0;
+    phase.sections.forEach(s => s.tasks.forEach(t => { phaseAllCount++; if (checks[t.id]) phaseDoneCount++; }));
+    html += `<div class="phase-group">
+      <div class="phase-header">
+        <span class="phase-badge ${phase.cls}">${phase.label}</span>
+        <span class="phase-title">${phase.title}</span>
+        <span class="phase-progress-text" data-phase="${phase.id}">${phaseDoneCount} / ${phaseAllCount}</span>
+        <div class="phase-pbar"><div class="phase-pbar-fill" data-phase="${phase.id}" style="width:${phaseAllCount?Math.round(phaseDoneCount/phaseAllCount*100):0}%"></div></div>
+      </div>`;
+    phase.sections.forEach(sec => {
+      html += `<div class="section-label">${sec.label}</div>`;
+      sec.tasks.forEach(task => {
+        const isDone = !!checks[task.id];
+        const hasNote = !!(notes[task.id] && notes[task.id].trim());
+        html += `<div class="task-card${isDone?' done':''}" id="card_${task.id}">
+          <div class="task-main" onclick="toggleTask('${task.id}','${phase.id}')">
+            <div class="task-check"><svg class="checkmark" viewBox="0 0 11 8"><path d="M1 4l3 3 6-6"/></svg></div>
+            <span class="task-title">${task.title}</span>
+            <div class="task-meta">
+              <span class="has-note-badge" id="notebadge_${task.id}" style="display:${hasNote?'inline':'none'}">メモあり</span>
+              <button class="note-toggle" onclick="event.stopPropagation();toggleNote('${task.id}')">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                メモ
+              </button>
+            </div>
+          </div>`;
+        if (task.subs.length > 0) {
+          html += `<div class="sub-tasks">`;
+          task.subs.forEach((sub, si) => {
+            const key = task.id + '_' + si;
+            html += `<div class="sub-task${subChecks[key]?' done':''}" id="sub_${key}" onclick="toggleSub('${task.id}',${si})">
+              <div class="sub-check"><div class="sub-dot"></div></div>
+              <span class="sub-title">${sub}</span>
+            </div>`;
+          });
+          html += `</div>`;
+        }
+        html += `<div class="note-area" id="note_${task.id}">
+          <textarea id="ta_${task.id}" placeholder="気づき・メモ・つまずいた点など...">${(notes[task.id]||'').replace(/</g,'&lt;')}</textarea>
+          <div class="note-footer"><button class="save-btn" id="savebtn_${task.id}" onclick="saveNote('${task.id}')">メモを保存</button></div>
+        </div></div>`;
+      });
+    });
+    html += `</div>`;
+  });
+  html += `<div class="phase-group">
+    <div class="phase-header">
+      <span class="phase-badge p1">学習ログ</span>
+      <span class="phase-title">日々の記録</span>
+    </div>
+    <div class="log-section">
+      <div class="log-input-row">
+        <input type="text" id="logDate" placeholder="${today()}" maxlength="10">
+        <textarea id="logContent" placeholder="今日やったこと・気づき..."></textarea>
+        <button class="add-log-btn" onclick="addLog()">追加</button>
+      </div>
+      <div class="log-list" id="logList"></div>
+    </div>
+  </div>`;
+  main.innerHTML = html;
+  renderLogList();
+  updateOverall();
+}
+</script>
+</body>
+</html>
